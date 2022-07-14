@@ -17,6 +17,7 @@ jobs:
           command: |
             echo "World"
             echo "My pipeline id is << pipeline.id >> and my git branch is << pipeline.git.branch >>."
+            echo "My github url is << pipeline.project.git_url >> and git tools is << pipeline.project.type >>"
 workflows:
   welcome:
     jobs:
