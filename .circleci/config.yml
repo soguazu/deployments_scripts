@@ -20,7 +20,7 @@ jobs:
             echo "My github url is << pipeline.project.git_url >> and git tools is << pipeline.project.type >>"
   print_my_name:
     environment:
-      name: "Oguazu Stanley"
+      NAME: Oguazu Stanley
     docker:
       - image: circleci/node:13.8.0
     steps:
