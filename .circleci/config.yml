@@ -18,6 +18,16 @@ jobs:
             echo "World"
             echo "My pipeline id is << pipeline.id >> and my git branch is << pipeline.git.branch >>."
             echo "My github url is << pipeline.project.git_url >> and git tools is << pipeline.project.type >>"
+  print_my_name:
+    environment:
+      name: "Oguazu Stanley"
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - run:
+          name: Print my name
+          command: |
+            echo "My name is << name >> and it's nice to meet you"
 workflows:
   welcome:
     jobs:
