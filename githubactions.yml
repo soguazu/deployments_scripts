@@ -1,0 +1,153 @@
+name: Hasura Tests
+
+on:
+  pull_request:
+    branches:
+      - develop
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v3
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: true
+          tags: srflorea/actions:latest
+  build:
+    needs: docker
+    runs-on: ubuntu-latest
+
+    container: node:14.18.0-bullseye
+    services:
+      postgres:
+        image: postgres:latest
+        env:
+          POSTGRES_USER: rex
+          POSTGRES_PASSWORD: admin
+          POSTGRES_DB: core
+        options: --health-cmd pg_isready --health-interval 30s --health-retries 12
+        ports:
+          - 5432:5432
+
+      hasura:
+        image: hasura/graphql-engine:v2.6.2
+        env:
+          HASURA_GRAPHQL_UNAUTHORIZED_ROLE: anonymous
+          HASURA_GRAPHQL_EXPERIMENTAL_FEATURES: inherited_roles
+          HASURA_GRAPHQL_DATABASE_URL: postgres://rex:admin@postgres:5432/core
+          HASURA_GRAPHQL_METADATA_DATABASE_URL: postgres://rex:admin@postgres:5432/core
+          HASURA_GRAPHQL_JWT_SECRET: '{ "type": "HS256", "key": "super-secret-super-secret-super-secret" }'
+          ACTION_BASE_URL: http://actions:5000
+          HASURA_GRAPHQL_ENABLE_CONSOLE: 'true'
+          EVENT_HEADER: eyJhbGciOiJIUzI1NiJ9.UkVY._lzCEoIjhH85WJedEas7nsn1erVpCacN0dUocDFpitc
+          HASURA_GRAPHQL_DEV_MODE: 'true'
+          HASURA_GRAPHQL_LOG_LEVEL: debug
+          HASURA_GRAPHQL_ENABLED_APIS: 'metadata,graphql'
+          HASURA_GRAPHQL_ENABLED_LOG_TYPES: startup, http-log, webhook-log, websocket-log, query-log
+          HASURA_GRAPHQL_ADMIN_SECRET: super_secret
+          HASURA_GRAPHQL_DISABLE_CORS: 'false'
+        ports:
+          - 8080:8080
+      actions:
+        image: srflorea/actions
+        env:
+          NODE_ENV: development
+          PORT: 5000
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_ALGORITHM: ${{ secrets.JWT_ALGORITHM }}
+          HASURA_ADMIN_SECRET: ${{ secrets.HASURA_ADMIN_SECRET }}
+          HASURA_ENDPOINT: ${{ secrets.HASURA_ENDPOINT }}
+          HASURA_ENDPOINT_REMOTE: ${{ secrets.HASURA_ENDPOINT_REMOTE }}
+          COVERAGE: ${{ secrets.COVERAGE }}
+          COVERAGE_USERNAME: ${{ secrets.COVERAGE_USERNAME }}
+          COVERAGE_PASSWORD: ${{ secrets.COVERAGE_PASSWORD }}
+          RESET_PASSWORD_URL: ${{ secrets.RESET_PASSWORD_URL }}
+          TWILIO_ACCOUNT_SID: ${{ secrets.TWILIO_ACCOUNT_SID }}
+          TWILIO_AUTH_TOKEN: ${{ secrets.TWILIO_AUTH_TOKEN }}
+          TWILIO_FROM: ${{ secrets.TWILIO_FROM }}
+          DO_SPACES_ENDPOINT: ${{ secrets.DO_SPACES_ENDPOINT }}
+          DO_SPACES_KEY: ${{ secrets.DO_SPACES_KEY }}
+          DO_SPACES_SECRET: ${{ secrets.DO_SPACES_SECRET }}
+          DO_SPACES_NAME: ${{ secrets.DO_SPACES_NAME }}
+          EVENT_HEADER_VALUE: ${{ secrets.EVENT_HEADER_VALUE }}
+          WP_API_URL: ${{ secrets.WP_API_URL }}
+          TWILIO_EMAIL_API: ${{ secrets.TWILIO_EMAIL_API }}
+          TWILIO_EMAIL_API_KEY: ${{ secrets.TWILIO_EMAIL_API }}
+          TWILIO_EMAIL: ${{ secrets.TWILIO_EMAIL}}
+        ports:
+          - 6004:5000
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          repository: RexTechnologies/hasura
+          token: ${{ secrets.CLONE_TOKEN }}
+          ref: develop
+
+      - name: Hasura CI/CD
+        uses: browniefed/hasura-runner@master
+        with:
+          args: metadata apply
+        env:
+          PATH_TO_HASURA_PROJECT_ROOT: ./
+          HASURA_CLI_VERSION: v2.6.2
+          HASURA_ENDPOINT: http://hasura:8080
+          HASURA_ADMIN_SECRET: super_secret
+
+      - name: Hasura CI/CD
+        uses: browniefed/hasura-runner@master
+        with:
+          args: metadata reload
+        env:
+          PATH_TO_HASURA_PROJECT_ROOT: ./
+          HASURA_CLI_VERSION: v2.6.2
+          HASURA_ENDPOINT: http://hasura:8080
+          HASURA_ADMIN_SECRET: super_secret
+
+      - name: Hasura CI/CD
+        uses: browniefed/hasura-runner@master
+        with:
+          args: migrate apply --database-name core
+        env:
+          PATH_TO_HASURA_PROJECT_ROOT: ./
+          HASURA_CLI_VERSION: v2.6.2
+          HASURA_ENDPOINT: http://hasura:8080
+          HASURA_ADMIN_SECRET: super_secret
+
+      - name: Hasura CI/CD
+        uses: browniefed/hasura-runner@master
+        with:
+          args: metadata reload
+        env:
+          PATH_TO_HASURA_PROJECT_ROOT: ./
+          HASURA_CLI_VERSION: v2.6.2
+          HASURA_ENDPOINT: http://hasura:8080
+          HASURA_ADMIN_SECRET: super_secret
+
+      - name: Hasura CI/CD
+        uses: browniefed/hasura-runner@master
+        with:
+          args: seeds apply --database-name core
+        env:
+          PATH_TO_HASURA_PROJECT_ROOT: ./
+          HASURA_CLI_VERSION: v2.6.2
+          HASURA_ENDPOINT: http://hasura:8080
+          HASURA_ADMIN_SECRET: super_secret
+
+      - name: Run integration tests
+        run: |
+          npm ci
+          npm run test:ci
+        working-directory: ./
