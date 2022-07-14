@@ -16,6 +16,7 @@ jobs:
           name: Print world
           command: |
             echo "World"
+            echo "My pipeline id is << pipeline.id >> and my git branch is << pipeline.git.branch >>."
 workflows:
   welcome:
     jobs:
