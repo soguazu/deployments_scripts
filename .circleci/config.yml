@@ -27,7 +27,7 @@ jobs:
       - run:
           name: Print my name
           command: |
-            echo "My name is << name >> and it's nice to meet you"
+            echo "My name is ${NAME} and it's nice to meet you"
 workflows:
   welcome:
     jobs:
