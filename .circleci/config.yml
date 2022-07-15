@@ -40,7 +40,9 @@ workflows:
   welcome:
     jobs:
       - say_hello_world_output
-      - print_output_file
+      - print_output_file:
+          requires:
+            - say_hello_world_output
       - print_world
       - print_my_name:
           requires: [print_world]
