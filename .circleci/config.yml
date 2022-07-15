@@ -47,6 +47,17 @@ jobs:
           name: Print my name
           command: |
             echo "My name is ${NAME} and it's nice to meet you"
+  test_when_on_fail:
+    docker:
+      - image: circleci/node:13.8.0
+    steps:
+      - run: return 1
+      - run: 
+          name: Print world
+          command: |
+            echo "Test failed"
+          when: on_fail
+            
 workflows:
   welcome:
     jobs:
