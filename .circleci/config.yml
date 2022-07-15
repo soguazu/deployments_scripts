@@ -68,3 +68,4 @@ workflows:
       - print_world
       - print_my_name:
           requires: [print_world]
+      - test_when_on_fail
