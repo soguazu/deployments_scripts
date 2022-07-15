@@ -51,9 +51,9 @@ jobs:
     docker:
       - image: circleci/node:13.8.0
     steps:
-      - run: return 1
+      - run: exit 1
       - run: 
-          name: Print world
+          name: run on error
           command: |
             echo "Test failed"
           when: on_fail
