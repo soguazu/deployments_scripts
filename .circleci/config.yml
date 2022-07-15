@@ -1,4 +1,13 @@
 version: 2.1
+commands:
+  greeting:
+    description: "just testing reusable code"
+    parameters:
+      to:
+        type: string
+        default: "Some one"
+    steps:
+      - run: echo "Hello << parameters.to >>"
 jobs:
   say_hello_world_output:
     docker:
@@ -20,6 +29,8 @@ jobs:
     docker:
       - image: circleci/node:13.8.0
     steps:
+      - greeting:
+          to: "Grey white"
       - run: 
           name: Print world
           command: |
